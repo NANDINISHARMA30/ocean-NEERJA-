@@ -16,7 +16,7 @@ import SpeciesDetailPage from "./pages/SpeciesDetailPage";
 import Research from "./pages/Research";
 import SalinityGlobe from "./pages/salinity";
 import Waterquality from "./pages/waterquality";
-import GeminiChatbot from "./pages/Chatbot"; // Ensure this file exists
+import NeerBot from "./pages/NeerBot";
 
 import Globe from "./pages/waste";
 import NitrateGlobe from "./pages/nitrate";
@@ -155,10 +155,10 @@ function App() {
 
         {/* Chatbot */}
         <Route
-          path="/chatbot"
+          path="/NeerBot"
           element={
             <main className="min-h-screen p-6 text-white bg-[#0D1117]">
-              <GeminiChatbot />
+              <NeerBot />
             </main>
           }
         />
