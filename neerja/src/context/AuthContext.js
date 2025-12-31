@@ -1,32 +1,64 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Create the AuthContext
+// Create the context
 export const AuthContext = createContext();
 
-// AuthProvider to wrap your app
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+// Create and export the useAuth hook
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-  // Load user from localStorage on app start
+// Create and export the AuthProvider
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Check for existing authentication on mount
+    const token = localStorage.getItem('token');
+    const userInfo = localStorage.getItem('userInfo');
+    
+    if (token && userInfo) {
+      try {
+        setUser(JSON.parse(userInfo));
+      } catch (error) {
+        console.error('Error parsing user info:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('userInfo');
+      }
     }
+    setLoading(false);
   }, []);
 
-  // Optional: Save to localStorage whenever user changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
-    }
-  }, [user]);
+  const login = (userData, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('userInfo', JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userInfo');
+    setUser(null);
+  };
+
+  const value = {
+    user,
+    login,
+    logout,
+    loading,
+    isAuthenticated: !!user
+  };
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
-}
+};
+
+export default AuthProvider;

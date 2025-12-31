@@ -19,6 +19,7 @@ export default function Navbar() {
     { name: "Analysis ", path: "/analysis" },
     {name:"Biodiversity", path:"/biodiversity"},
    { name: "Contact", path: "/contact" },
+   //{ name: "NeerBot", path: "/NeerBot" },
 
 
    

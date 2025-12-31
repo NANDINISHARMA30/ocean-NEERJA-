@@ -1,83 +1,98 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-export default function Chatbot() {
-  const [messages, setMessages] = useState([
-    { role: "assistant", text: "Hi!. How can I help you today?" }
-  ]);
-  const [input, setInput] = useState("");
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+export default function ChatBot() {
+  const [messages, setMessages] = useState([]);
+  const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  const scrollRef = useRef(null);
 
-    const newMessages = [...messages, { role: "user", text: input }];
-    setMessages(newMessages);
-    setInput("");
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!userInput.trim()) return;
+
+    const newUserMessage = { role: "user", content: userInput };
+    setMessages((prev) => [...prev, newUserMessage]);
     setLoading(true);
-    setError(null);
 
     try {
-      const res = await fetch("http://localhost:5000/api/chat", {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message: userInput }), // ✅ must send { message }
       });
 
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
-      }
-
       const data = await res.json();
-      setMessages([...newMessages, { role: "assistant", text: data.reply }]);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to connect to the chatbot. Please try again.");
-      setMessages([...newMessages, { role: "assistant", text: "⚠️ Unable to get response." }]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      sendMessage();
+      const newBotMessage = {
+        role: "assistant",
+        content: data.reply || "⚠️ No response from server",
+      };
+      setMessages((prev) => [...prev, newBotMessage]);
+    } catch (err) {
+      console.error("Chat error:", err);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "⚠️ Error connecting to server." },
+      ]);
     }
+
+    setUserInput("");
+    setLoading(false);
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-2 p-2">
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`p-2 rounded-lg ${
-              msg.role === "user" ? "bg-blue-600 text-right" : "bg-gray-700 text-left"
-            }`}
-          >
-            {msg.text}
-          </div>
-        ))}
-        {loading && <div className="text-gray-400">Typing...</div>}
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <div className="w-full max-w-2xl bg-white shadow-lg rounded-2xl p-6 flex flex-col">
+        <h1 className="text-2xl font-bold text-center mb-4">🤖 Tunchik ChatBot</h1>
 
-      {error && <div className="text-red-500 p-2">{error}</div>}
-
-      <div className="flex p-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Ask Gemini..."
-          className="flex-1 px-3 py-2 rounded-l-lg text-black"
-        />
-        <button
-          onClick={sendMessage}
-          className="px-4 py-2 bg-yellow-500 rounded-r-lg hover:bg-yellow-400 font-semibold"
+        {/* Messages */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto mb-4 border p-3 rounded-lg h-96 bg-gray-50"
         >
-          Send
-        </button>
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`mb-2 p-2 rounded-lg max-w-[80%] ${
+                msg.role === "user"
+                  ? "bg-blue-500 text-white self-end ml-auto"
+                  : "bg-gray-300 text-black self-start mr-auto"
+              }`}
+            >
+              {msg.content}
+            </div>
+          ))}
+          {loading && (
+            <div className="text-gray-500 italic">Gemini is thinking...</div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="flex">
+          <input
+            type="text"
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            className="flex-1 border rounded-l-lg p-2 outline-none text-black placeholder-gray-500 caret-blue-600"
+            placeholder="Ask Gemini..."
+          />
+          <button
+            onClick={handleSend}
+            disabled={loading}
+            className="bg-blue-600 text-white px-4 rounded-r-lg hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            {loading ? "..." : "Send"}
+          </button>
+        </div>
       </div>
     </div>
   );
